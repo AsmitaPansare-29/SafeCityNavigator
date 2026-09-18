@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafeRoute — Women's Safety Navigation</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Manrope:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b14;
+    --surface: #111220;
+    --surface2: #181930;
+    --border: #2a2d4a;
+    --accent: #7c6fef;
+    --accent2: #e05c8a;
+    --safe: #22d3a5;
+    --warn: #f5a623;
+    --danger: #ef4444;
+    --police: #60a5fa;
+    --hospital: #f472b6;
+    --text: #e8eaf0;
+    --muted: #6b7080;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Manrope', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(17,18,32,0.95);
+    backdrop-filter: blur(12px);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .logo-icon {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: grid; place-items: center;
+    font-size: 18px;
+  }
+  .logo h1 {
+    font-size: 1.2rem; font-weight: 900;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+  .status-bar {
+    display: flex; gap: 16px; align-items: center;
+  }
+  .badge {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+  .badge.safe { border-color: var(--safe); color: var(--safe); background: rgba(34,211,165,0.08); }
+  .badge.algo { border-color: var(--accent); color: var(--accent); background: rgba(124,111,239,0.08); }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    display: grid;
+    grid-template-columns: 320px 1fr 280px;
+    gap: 0;
+    height: calc(100vh - 61px);
+  }
+
+  /* ── PANELS ── */
+  .panel {
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 20px;
+  }
+  .panel:last-child { border-right: none; border-left: 1px solid var(--border); }
+  .panel-title {
+    font-size: 0.65rem;
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* ── LEFT PANEL: Controls ── */
+  .select-group { margin-bottom: 16px; }
+  .select-group label {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  select:focus { border-color: var(--accent); }
+
+  .btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #6357d4);
+    color: white;
+    margin-bottom: 10px;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,111,239,0.4); }
+  .btn-sos {
+    background: linear-gradient(135deg, var(--accent2), #c2185b);
+    color: white;
+  }
+  .btn-sos:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(224,92,138,0.4); }
+  .btn-sos.pulsing { animation: sosPulse 1s ease-in-out infinite; }
+  @keyframes sosPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(224,92,138,0.5); }
+    50% { box-shadow: 0 0 0 14px rgba(224,92,138,0); }
+  }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* Route info box */
+  .route-info {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-top: 16px;
+  }
+  .route-info-title {
+    font-size: 0.65rem;
+    font-family: var(--mono);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+  }
+  .route-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 0.82rem;
+  }
+  .step-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--safe);
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  .step-line {
+    width: 2px; height: 16px;
+    background: var(--border);
+    margin: 0 3px;
+    flex-shrink: 0;
+  }
+  .route-step.unsafe .step-dot { background: var(--danger); }
+
+  .metric-row {
+    display: flex; justify-content: space-between;
+    font-size: 0.8rem; margin-bottom: 6px;
+  }
+  .metric-val { font-family: var(--mono); color: var(--safe); font-weight: 700; }
+
+  /* ── CENTER: MAP ── */
+  .map-area {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(124,111,239,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 70% 80%, rgba(224,92,138,0.05) 0%, transparent 60%),
+      var(--bg);
+  }
+  #cityMap {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ── RIGHT PANEL: Safe Places & Legend ── */
+  .safe-place-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: border-color 0.2s;
+  }
+  .safe-place-card:hover { border-color: var(--accent); }
+  .place-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: grid; place-items: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .place-icon.police { background: rgba(96,165,250,0.15); }
+  .place-icon.hospital { background: rgba(244,114,182,0.15); }
+  .place-name { font-weight: 600; font-size: 0.82rem; }
+  .place-score {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--safe);
+    margin-top: 2px;
+  }
+
+  /* Legend */
+  .legend-item {
+    display: flex; align-items: center;
+    gap: 10px; margin-bottom: 8px;
+    font-size: 0.78rem; color: var(--muted);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%; flex-shrink: 0;
+  }
+  .legend-line {
+    width: 24px; height: 3px;
+    border-radius: 2px; flex-shrink: 0;
+  }
+
+  /* DSA box */
+  .dsa-box {
+    background: linear-gradient(135deg, rgba(124,111,239,0.08), rgba(224,92,138,0.05));
+    border: 1px solid rgba(124,111,239,0.3);
+    border-radius: 10px;
+    padding: 14px;
+    margin-top: 4px;
+  }
+  .dsa-box h4 { font-size: 0.72rem; color: var(--accent); margin-bottom: 8px; font-family: var(--mono); }
+  .dsa-box li {
+    font-size: 0.75rem; color: var(--muted);
+    list-style: none; margin-bottom: 4px;
+    padding-left: 12px; position: relative;
+  }
+  .dsa-box li::before { content: '▸'; position: absolute; left: 0; color: var(--accent); }
+
+  /* Toast / Alert */
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 0.82rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    transform: translateX(120%);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    z-index: 200;
+    max-width: 280px;
+  }
+  .toast.show { transform: translateX(0); }
+  .toast.sos { border-color: var(--accent2); }
+  .toast-icon { font-size: 1.4rem; margin-bottom: 4px; }
+  .toast-title { font-weight: 800; margin-bottom: 2px; }
+  .toast-msg { color: var(--muted); font-size: 0.75rem; }
+
+  /* SVG styles */
+  .node-circle { cursor: pointer; transition: r 0.2s; }
+  .node-circle:hover { filter: brightness(1.3); }
+  .edge-line { stroke-opacity: 0.4; transition: stroke-opacity 0.3s; }
+  .edge-safe { stroke: var(--safe); }
+  .edge-unsafe { stroke: var(--danger); }
+  .edge-moderate { stroke: var(--warn); }
+  .route-highlight { stroke-opacity: 1 !important; stroke-width: 5 !important; animation: dash 0.5s ease; }
+
+  .scrollbar-hidden::-webkit-scrollbar { width: 4px; }
+  .scrollbar-hidden::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-hidden::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛡️</div>
+    <div>
+      <h1>Safe<span>Route</span></h1>
+    </div>
+  </div>
+
+  <div class="status-bar">
+  <div class="badge safe">● SYSTEM ACTIVE</div>
+  <div class="badge algo" id="liveClock" style="color:#e8eaf0; border-color:#2a2d4a;">
+    --:-- --
+  </div>
+</div>
+</header>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT PANEL -->
+  <div class="panel scrollbar-hidden" style="background: var(--surface);">
+    <div class="panel-title">Route Planner</div>
+
+    <div class="select-group">
+      <label>Start Location</label>
+      <select id="sourceSelect">
+        <option value="A">🏠 Home Area</option>
+        <option value="B">🏪 Market Street</option>
+        <option value="C">🌟 Well-Lit Boulevard</option>
+        <option value="D">⚠️ Dark Back Alley</option>
+        <option value="E">👮 City Police Station</option>
+        <option value="F">🚇 Metro Station</option>
+        <option value="G">🏥 General Hospital</option>
+        <option value="H">🏢 Office District</option>
+        <option value="I">⚠️ Lonely Underpass</option>
+        <option value="J">🛍️ Shopping Mall</option>
+      </select>
+    </div>
+
+    <div class="select-group">
+      <label>Destination</label>
+      <select id="destSelect">
+        <option value="H">🏢 Office District</option>
+        <option value="A">🏠 Home Area</option>
+        <option value="B">🏪 Market Street</option>
+        <option value="C">🌟 Well-Lit Boulevard</option>
+        <option value="D">⚠️ Dark Back Alley</option>
+        <option value="E">👮 City Police Station</option>
+        <option value="F">🚇 Metro Station</option>
+        <option value="G">🏥 General Hospital</option>
+        <option value="I">⚠️ Lonely Underpass</option>
+        <option value="J">🛍️ Shopping Mall</option>
+      </select>
+    </div>
+
+    <button class="btn btn-primary" onclick="findRoute()">>> Find Safest Route</button>
+    <button class="btn" id="nightBtn" onclick="toggleNight()" style="background:#1e1f35; border:1px solid #2a2d4a; color:#a78bfa; margin-bottom:10px;">
+  🌙 Night Mode: OFF
+</button>
+    <button class="btn btn-sos" id="sosBtn" onclick="triggerSOS()">🚨 SOS Emergency Alert</button>
+
+    <hr class="divider">
+
+    <!-- Route Result -->
+    <div id="routeResult" class="route-info" style="display:none">
+      <div class="route-info-title">🛡️ Safest Path Found</div>
+      <div id="routeSteps"></div>
+      <hr class="divider" style="margin: 10px 0">
+      <div class="metric-row">
+        <span>Safety Score</span>
+        <span class="metric-val" id="safetyScore">—</span>
+      </div>
+  
+    </div>
+  </div>
+
+  <!-- CENTER MAP -->
+  <div class="map-area">
+    <svg id="cityMap" viewBox="0 0 700 540" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <marker id="arrowSafe" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L6,3 z" fill="#22d3a5" opacity="0.6"/>
+        </marker>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="glowStrong">
+          <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Grid lines -->
+      <g opacity="0.04" stroke="#7c6fef" stroke-width="1">
+        <line x1="0" y1="100" x2="700" y2="100"/>
+        <line x1="0" y1="200" x2="700" y2="200"/>
+        <line x1="0" y1="300" x2="700" y2="300"/>
+        <line x1="0" y1="400" x2="700" y2="400"/>
+        <line x1="0" y1="500" x2="700" y2="500"/>
+        <line x1="100" y1="0" x2="100" y2="540"/>
+        <line x1="200" y1="0" x2="200" y2="540"/>
+        <line x1="300" y1="0" x2="300" y2="540"/>
+        <line x1="400" y1="0" x2="400" y2="540"/>
+        <line x1="500" y1="0" x2="500" y2="540"/>
+        <line x1="600" y1="0" x2="600" y2="540"/>
+      </g>
+
+      <!-- EDGES — drawn first so nodes appear on top -->
+      <g id="edgesGroup"></g>
+      <g id="routeEdgesGroup"></g>
+
+      <!-- NODES -->
+      <g id="nodesGroup"></g>
+    </svg>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel scrollbar-hidden" style="background: var(--surface);">
+    <div class="panel-title">Safe Places Nearby</div>
+
+    <div class="safe-place-card">
+      <div class="place-icon police">👮</div>
+      <div>
+        <div class="place-name">City Police Station</div>
+        <div class="place-score">Safety: 10/10 ●●●●●●●●●●</div>
+      </div>
+    </div>
+    <div class="safe-place-card">
+      <div class="place-icon hospital">🏥</div>
+      <div>
+        <div class="place-name">General Hospital</div>
+        <div class="place-score">Safety: 9/10 ●●●●●●●●●○</div>
+      </div>
+    </div>
+    <div class="safe-place-card">
+      <div class="place-icon" style="background:rgba(34,211,165,0.1)">🚇</div>
+      <div>
+        <div class="place-name">Metro Station</div>
+        <div class="place-score">Safety: 8/10 ●●●●●●●●○○</div>
+      </div>
+    </div>
+
+    <hr class="divider">
+    <div class="panel-title">Map Legend</div>
+
+    <div class="legend-item">
+      <div class="legend-dot" style="background: var(--safe)"></div>
+      Safe zone (score 7–10)
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: var(--warn)"></div>
+      Moderate zone (4–6)
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: var(--danger)"></div>
+      Unsafe zone (1–3)
+    </div>
+    <div class="legend-item">
+      <div class="legend-line" style="background: var(--safe)"></div>
+      Safe road
+    </div>
+    <div class="legend-item">
+      <div class="legend-line" style="background: var(--danger)"></div>
+      Unsafe road (avoided)
+    </div>
+    <div class="legend-item">
+      <div class="legend-line" style="background: var(--accent); height:4px"></div>
+      Selected route
+    </div>
+
+
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-icon" id="toastIcon">[OK]</div>
+  <div class="toast-title" id="toastTitle">Route Found!</div>
+  <div class="toast-msg" id="toastMsg">Safest path calculated.</div>
+</div>
+
+<script>
+  function updateClock() {
+  const now = new Date();
+  let hours = now.getHours();
+  const mins = String(now.getMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  const timeStr = `${hours}:${mins} ${ampm}`;
+  const clockEl = document.getElementById('liveClock');
+  clockEl.textContent = timeStr;
+
+  if (now.getHours() >= 20 || now.getHours() < 6) {
+    clockEl.style.color = '#a78bfa';
+    clockEl.style.borderColor = '#a78bfa';
+  }
+}
+
+setInterval(updateClock, 1000);
+updateClock();
+
+  let nightModeOn = false;
+
+function toggleNight() {
+  nightModeOn = !nightModeOn;
+  const btn = document.getElementById('nightBtn');
+  if (nightModeOn) {
+    btn.textContent = '🌙 Night Mode: ON';
+    btn.style.background = '#2a1f4a';
+    btn.style.borderColor = '#a78bfa';
+    btn.style.color = '#a78bfa';
+    document.body.style.filter = 'brightness(0.85)';
+    showToast('🌙', 'Night Mode ON', 'Unsafe roads now heavily penalized!', false);
+  } else {
+    btn.textContent = '🌙 Night Mode: OFF';
+    btn.style.background = '#1e1f35';
+    btn.style.borderColor = '#2a2d4a';
+    document.body.style.filter = 'brightness(1)';
+    showToast('☀️', 'Night Mode OFF', 'Normal safety weights restored.', true);
+  }
+}
+// ══════════════════════════════════════════════
+// DATA — mirrors the Java project exactly
+// ══════════════════════════════════════════════
+const nodes = {
+  A: { id:'A', name:'Home Area',           x:90,  y:280, safety:5,  type:'normal'  },
+  B: { id:'B', name:'Market Street',       x:220, y:170, safety:4,  type:'normal'  },
+  C: { id:'C', name:'Well-Lit Boulevard',  x:340, y:280, safety:9,  type:'normal'  },
+  D: { id:'D', name:'Dark Back Alley',     x:210, y:390, safety:2,  type:'normal'  },
+  E: { id:'E', name:'Police Station',      x:430, y:160, safety:10, type:'police'  },
+  F: { id:'F', name:'Metro Station',       x:520, y:280, safety:8,  type:'metro'   },
+  G: { id:'G', name:'General Hospital',   x:430, y:390, safety:9,  type:'hospital'},
+  H: { id:'H', name:'Office District',    x:620, y:280, safety:7,  type:'normal'  },
+  I: { id:'I', name:'Lonely Underpass',   x:320, y:430, safety:2,  type:'normal'  },
+  J: { id:'J', name:'Shopping Mall',      x:520, y:430, safety:8,  type:'normal'  },
+};
+
+const edges = [
+  { from:'A', to:'B', dist:1.5, light:5, crowd:6  },
+  { from:'A', to:'D', dist:1.0, light:2, crowd:2  },
+  { from:'A', to:'C', dist:2.0, light:9, crowd:8  },
+  { from:'B', to:'E', dist:1.5, light:8, crowd:7  },
+  { from:'B', to:'D', dist:0.8, light:3, crowd:3  },
+  { from:'C', to:'E', dist:1.2, light:9, crowd:8  },
+  { from:'C', to:'F', dist:1.5, light:8, crowd:9  },
+  { from:'D', to:'I', dist:0.5, light:1, crowd:1  },
+  { from:'E', to:'F', dist:1.0, light:9, crowd:8  },
+  { from:'F', to:'H', dist:1.0, light:8, crowd:9  },
+  { from:'F', to:'J', dist:1.2, light:8, crowd:9  },
+  { from:'G', to:'J', dist:0.8, light:7, crowd:6  },
+  { from:'H', to:'J', dist:0.5, light:7, crowd:8  },
+  { from:'I', to:'G', dist:1.0, light:4, crowd:3  },
+];
+
+function safetyWeight(edge) {
+  const dest = nodes[edge.to];
+  const avg = (dest.safety + edge.light + edge.crowd) / 3;
+  return edge.dist * (11 - avg);
+}
+
+function edgeSafetyClass(edge) {
+  const avg = (nodes[edge.to].safety + edge.light + edge.crowd) / 3;
+  if (avg >= 7) return 'safe';
+  if (avg >= 4) return 'moderate';
+  return 'unsafe';
+}
+
+function nodeColor(node) {
+  if (node.type === 'police')   return '#60a5fa';
+  if (node.type === 'hospital') return '#f472b6';
+  if (node.type === 'metro')    return '#a78bfa';
+  if (node.safety >= 7) return '#22d3a5';
+  if (node.safety >= 4) return '#f5a623';
+  return '#ef4444';
+}
+
+// ══════════════════════════════════════════════
+// RENDER MAP
+// ══════════════════════════════════════════════
+function renderMap() {
+  const edgesG = document.getElementById('edgesGroup');
+  const nodesG = document.getElementById('nodesGroup');
+
+  // Draw edges
+  edges.forEach(e => {
+    const n1 = nodes[e.from], n2 = nodes[e.to];
+    const cls = edgeSafetyClass(e);
+    const colors = { safe:'#22d3a5', moderate:'#f5a623', unsafe:'#ef4444' };
+    // Forward
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', n1.x); line.setAttribute('y1', n1.y);
+    line.setAttribute('x2', n2.x); line.setAttribute('y2', n2.y);
+    line.setAttribute('stroke', colors[cls]);
+    line.setAttribute('stroke-width', '2');
+    line.setAttribute('stroke-opacity', '0.35');
+    line.setAttribute('stroke-dasharray', cls === 'unsafe' ? '5,5' : 'none');
+    line.setAttribute('id', `edge-${e.from}-${e.to}`);
+    line.setAttribute('class', 'edge-line');
+    edgesG.appendChild(line);
+    // Reverse
+    const line2 = line.cloneNode();
+    line2.setAttribute('id', `edge-${e.to}-${e.from}`);
+    edgesG.appendChild(line2);
+  });
+
+  // Draw nodes
+  Object.values(nodes).forEach(n => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('id', `node-${n.id}`);
+    g.setAttribute('class','node-circle');
+    g.setAttribute('cursor','pointer');
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx', n.x); circle.setAttribute('cy', n.y);
+    circle.setAttribute('r', n.type !== 'normal' ? 18 : 14);
+    circle.setAttribute('fill', nodeColor(n));
+    circle.setAttribute('fill-opacity', '0.2');
+    circle.setAttribute('stroke', nodeColor(n));
+    circle.setAttribute('stroke-width', '2');
+    g.appendChild(circle);
+
+    // Icon
+    const icon = document.createElementNS('http://www.w3.org/2000/svg','text');
+    icon.setAttribute('x', n.x); icon.setAttribute('y', n.y + 1);
+    icon.setAttribute('text-anchor','middle'); icon.setAttribute('dominant-baseline','middle');
+    icon.setAttribute('font-size', n.type !== 'normal' ? '14' : '11');
+    icon.textContent = n.type === 'police' ? '👮' : n.type === 'hospital' ? '🏥' : n.type === 'metro' ? '🚇' : n.id;
+    g.appendChild(icon);
+
+    // Label
+   const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+label.setAttribute('x', n.x); label.setAttribute('y', n.y + (n.type !== 'normal' ? 34 : 30));
+label.setAttribute('text-anchor','middle');
+label.setAttribute('font-size','13');
+label.setAttribute('fill','#e8eaf0');
+label.setAttribute('font-weight','600');
+label.setAttribute('font-family','Manrope,sans-serif');
+label.textContent = n.name;
+    g.appendChild(label);
+
+    nodesG.appendChild(g);
+  });
+}
+
+// ══════════════════════════════════════════════
+// DIJKSTRA
+// ══════════════════════════════════════════════
+function dijkstra(source, dest) {
+  const dist = {}, prev = {}, visited = new Set();
+  Object.keys(nodes).forEach(id => { dist[id] = Infinity; prev[id] = null; });
+  dist[source] = 0;
+
+  // Simple priority queue using sorted array (same logic as Java Min-Heap)
+  const pq = [{ id: source, cost: 0 }];
+
+  while (pq.length > 0) {
+    pq.sort((a, b) => a.cost - b.cost);
+    const { id: curr } = pq.shift();
+    if (visited.has(curr)) continue;
+    visited.add(curr);
+    if (curr === dest) break;
+
+    // All edges from curr (both directions)
+    edges.filter(e => e.from === curr || e.to === curr).forEach(e => {
+      const neighbor = e.from === curr ? e.to : e.from;
+      if (visited.has(neighbor)) return;
+      // Compute weight using neighbor as destination for safety score
+      const edgeCopy = { from: curr, to: neighbor, dist: e.dist, light: e.light, crowd: e.crowd };
+      const w = safetyWeight(edgeCopy);
+      const newDist = dist[curr] + w;
+      if (newDist < dist[neighbor]) {
+        dist[neighbor] = newDist;
+        prev[neighbor] = curr;
+        pq.push({ id: neighbor, cost: newDist });
+      }
+    });
+  }
+
+  // Reconstruct path
+  const path = [];
+  let cur = dest;
+  while (cur) { path.unshift(cur); cur = prev[cur]; }
+  if (path[0] !== source) return { path: [], cost: Infinity };
+  return { path, cost: dist[dest] };
+}
+
+// ══════════════════════════════════════════════
+// UI ACTIONS
+// ══════════════════════════════════════════════
+let currentRoute = [];
+
+function findRoute() {
+  const src = document.getElementById('sourceSelect').value;
+  const dst = document.getElementById('destSelect').value;
+
+  if (src === dst) { showToast('⚠️', 'Same Location', 'Pick different start and end.', false); return; }
+
+  const { path, cost } = dijkstra(src, dst);
+
+  // Reset all edges
+  document.querySelectorAll('.edge-line').forEach(l => {
+    l.setAttribute('stroke-opacity','0.35');
+    l.setAttribute('stroke-width','2');
+  });
+  document.querySelectorAll('.node-circle circle').forEach(c => {
+    c.setAttribute('fill-opacity','0.2');
+    c.removeAttribute('filter');
+  });
+
+  if (!path.length) {
+    showToast('❌', 'No Route', 'No path found between these points.', false);
+    return;
+  }
+
+  currentRoute = path;
+
+  // Highlight route edges
+  for (let i = 0; i < path.length - 1; i++) {
+    const a = path[i], b = path[i+1];
+    const el = document.getElementById(`edge-${a}-${b}`) || document.getElementById(`edge-${b}-${a}`);
+    if (el) {
+      el.setAttribute('stroke', '#7c6fef');
+      el.setAttribute('stroke-width', '5');
+      el.setAttribute('stroke-opacity', '1');
+      el.setAttribute('stroke-dasharray', 'none');
+    }
+  }
+
+  // Highlight route nodes
+  path.forEach((id, idx) => {
+    const circle = document.querySelector(`#node-${id} circle`);
+    if (circle) {
+      circle.setAttribute('fill-opacity', '0.5');
+      circle.setAttribute('filter', 'url(#glowStrong)');
+    }
+  });
+
+  // Show panel
+  renderRouteSteps(path, cost);
+  showToast('🛡️', 'Safest Route Found!', `${path.length} stops via ${path.join(' → ')}`, true);
+}
+
+function renderRouteSteps(path, cost) {
+  const result = document.getElementById('routeResult');
+  const steps = document.getElementById('routeSteps');
+  const scoreEl = document.getElementById('safetyScore');
+
+  result.style.display = 'block';
+  scoreEl.textContent = cost.toFixed(2);
+  steps.innerHTML = '';
+
+  path.forEach((id, idx) => {
+    const n = nodes[id];
+    const unsafe = n.safety <= 3;
+    const div = document.createElement('div');
+    div.className = `route-step${unsafe ? ' unsafe' : ''}`;
+    div.innerHTML = `
+      <div>
+        <div class="step-dot" style="${unsafe ? 'background:var(--danger)' : ''}"></div>
+        ${idx < path.length - 1 ? '<div class="step-line"></div>' : ''}
+      </div>
+      <div>
+        <div style="font-weight:600;font-size:0.8rem">${n.name}</div>
+        <div style="color:var(--muted);font-size:0.7rem;font-family:var(--mono)">Safety: ${n.safety}/10</div>
+      </div>`;
+    steps.appendChild(div);
+  });
+}
+
+let sosActive = false;
+function triggerSOS() {
+  const btn = document.getElementById('sosBtn');
+  sosActive = !sosActive;
+  if (sosActive) {
+    btn.classList.add('pulsing');
+    btn.textContent = '[OK] SOS SENT — Tap to Cancel';
+    showToast('🚨', 'SOS Alert Sent!', 'Notifying Mom, Friend Neha, Dad + Police + Hospital', false);
+  } else {
+    btn.classList.remove('pulsing');
+    btn.textContent = '🚨 SOS Emergency Alert';
+    showToast('[OK]', 'SOS Cancelled', 'Alert deactivated.', true);
+  }
+}
+
+function showToast(icon, title, msg, safe) {
+  const toast = document.getElementById('toast');
+  document.getElementById('toastIcon').textContent = icon;
+  document.getElementById('toastTitle').textContent = title;
+  document.getElementById('toastMsg').textContent = msg;
+  toast.className = `toast${safe ? '' : ' sos'} show`;
+  setTimeout(() => { toast.className = `toast${safe ? '' : ' sos'}`; }, 3500);
+}
+
+// Init
+renderMap();
+// Auto-find default route on load
+setTimeout(() => findRoute(), 600);
+</script>
+</body>
+</html>
